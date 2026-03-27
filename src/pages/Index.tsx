@@ -1,6 +1,8 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
 
+const BOOKING_URL = "https://functions.poehali.dev/f76748b5-3565-4a46-aa22-986176833819";
+
 const HERO_IMG = "https://cdn.poehali.dev/projects/a8df8ae7-8ff8-4d15-b5ba-e01789ac9254/files/406875d1-b55a-4910-9808-d46510919bc3.jpg";
 const BARBER_IMG = "https://cdn.poehali.dev/projects/a8df8ae7-8ff8-4d15-b5ba-e01789ac9254/files/1742d580-31d7-42ed-8882-6e61da09576c.jpg";
 const WORK_IMG = "https://cdn.poehali.dev/projects/a8df8ae7-8ff8-4d15-b5ba-e01789ac9254/files/c16c08e1-7a55-4ca7-a6e9-5b159329d00f.jpg";
@@ -87,10 +89,37 @@ export default function Index() {
     time: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleBooking = (e: React.FormEvent) => {
+  const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(BOOKING_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: bookingForm.name,
+          phone: bookingForm.phone,
+          master: bookingForm.master,
+          service: bookingForm.service,
+          date: bookingForm.date,
+          time: bookingForm.time,
+        }),
+      });
+      if (res.ok) {
+        setSubmitted(true);
+      } else {
+        const data = await res.json();
+        setError(data.error || "Ошибка при отправке. Попробуйте ещё раз.");
+      }
+    } catch {
+      setError("Ошибка соединения. Проверьте интернет и попробуйте снова.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const scrollTo = (id: string) => {
@@ -629,9 +658,15 @@ export default function Index() {
                 </div>
               </div>
 
+              {error && (
+                <p className="mt-4 text-sm text-center" style={{ color: "#e8547a" }}>
+                  {error}
+                </p>
+              )}
               <button
                 type="submit"
-                className="mt-8 w-full py-4 text-base font-black tracking-widest uppercase transition-all hover:scale-[1.02]"
+                disabled={loading}
+                className="mt-6 w-full py-4 text-base font-black tracking-widest uppercase transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
                   background: "var(--brand-gold)",
                   color: "#0a0a0a",
@@ -640,7 +675,7 @@ export default function Index() {
                   boxShadow: "0 8px 30px rgba(212,168,67,0.3)",
                 }}
               >
-                Отправить заявку →
+                {loading ? "Отправляем..." : "Отправить заявку →"}
               </button>
               <p className="mt-4 text-center text-xs" style={{ color: "#555" }}>
                 Нажимая кнопку, вы соглашаетесь с обработкой персональных данных
